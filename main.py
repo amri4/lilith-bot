@@ -13,16 +13,29 @@ intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
 
-bot = commands.Bot(command_prefix=["lilith ", "lilith", "Lilith ", "Lilith"], intents=intents, help_command=None)
+
+class LilithBot(commands.Bot):
+    async def setup_hook(self):
+        database.init_db()
+        for ext in ["cogs.help_command", "cogs.evil"]:
+            try:
+                await self.load_extension(ext)
+                print(f"[Lilith] Loaded {ext}")
+            except Exception as e:
+                print(f"[Lilith] ERROR loading {ext}: {e}")
+
+
+bot = LilithBot(
+    command_prefix=["lilith ", "lilith", "Lilith ", "Lilith"],
+    intents=intents,
+    help_command=None,
+)
 
 
 @bot.event
 async def on_ready():
-    database.init_db()
-    await bot.load_extension("cogs.help_command")
-    await bot.load_extension("cogs.evil")
     print(f"[Lilith] Online as {bot.user} (ID: {bot.user.id})")
-    print(f"[Lilith] Prefix: lilith | Satellite 02 — Evil")
+    print(f"[Lilith] Prefix: lilith  | Satellite 02 — Evil")
 
 
 @bot.event
