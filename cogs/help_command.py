@@ -11,7 +11,7 @@ COMMANDS_DATA = {
         "lilith siblings": "List all six Vegapunk satellites.",
     },
     "❓ Help": {
-        "lilith?": "Show this help menu.",
+        "lilith help": "Show this help menu.",
     },
 }
 
@@ -47,7 +47,7 @@ class HelpCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.command(name="?")
+    @commands.command(name="help", aliases=["?"])
     async def help_command(self, ctx):
         embed = discord.Embed(
             title="💀 Lilith — Satellite 02 (Evil)",
