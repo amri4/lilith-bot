@@ -2,13 +2,19 @@ import discord
 from discord.ext import commands
 
 COMMANDS_DATA = {
-    "💀 Evil Schemes": {
-        "lilith steal @user": "Steal a random amount of gems from a user. Tracked in the database.",
-        "lilith hoard": "Show the total gems Lilith has stolen in this server.",
-        "lilith bounty @user <amount>": "Place a bounty on someone's head.",
-        "lilith bounties": "Show all active bounties in this server.",
-        "lilith taunt @user": "Unleash a devastating taunt on a user.",
-        "lilith siblings": "List all six Vegapunk satellites.",
+    "🔒 Moderation": {
+        "lilith kick @user [reason]": "Kick a member. (Kick Members permission required)",
+        "lilith ban @user [reason]": "Ban a member. (Ban Members permission required)",
+        "lilith unban <user_id>": "Unban a user by ID. (Ban Members required)",
+        "lilith warn @user <reason>": "Issue a warning. Logged in SHAKA database.",
+        "lilith warnings @user": "View all warnings for a user.",
+        "lilith clearwarnings @user": "Clear all warnings for a user. (Admin only)",
+        "lilith mute @user <duration> [reason]": "Timeout a member. Duration: 10m, 1h, 2d.",
+        "lilith unmute @user": "Remove a timeout from a member.",
+        "lilith clear <amount>": "Delete up to 100 messages from this channel.",
+    },
+    "🤖 Satellite Info": {
+        "lilith siblings": "List all six Vegapunk satellites and their roles.",
     },
     "❓ Help": {
         "lilith help": "Show this help menu.",
@@ -28,12 +34,12 @@ class CategorySelect(discord.ui.Select):
         category = self.values[0]
         cmds = COMMANDS_DATA[category]
         embed = discord.Embed(
-            title=f"Lilith — {category}",
+            title=f"🔒 Lilith — {category}",
             color=discord.Color.red(),
         )
         for name, desc in cmds.items():
             embed.add_field(name=f"`{name}`", value=desc, inline=False)
-        embed.set_footer(text="Satellite 02 — Lilith (Evil) | Prefix: lilith")
+        embed.set_footer(text="Satellite 02 — Lilith (Evil) | Moderation | Prefix: lilith")
         await interaction.response.edit_message(embed=embed)
 
 
@@ -50,15 +56,16 @@ class HelpCog(commands.Cog):
     @commands.command(name="help", aliases=["?"])
     async def help_command(self, ctx):
         embed = discord.Embed(
-            title="💀 Lilith — Satellite 02 (Evil)",
+            title="🔒 LILITH — Satellite 02 (Evil)",
             description=(
-                "Heh. You need *help*? How pathetic.\n"
-                "Fine. Pick a category and I'll show you what I can do.\n\n"
-                "**Prefix:** `lilith`"
+                "Hi, I'm Lilith. I handle levels, welcome members, and enforcement.\n"
+                "Moderation tools, warnings, timeouts — all logged through SHAKA.\n\n"
+                "**Prefix:** `lilith`\n"
+                "⚠️ Most commands require Manage Messages or higher."
             ),
             color=discord.Color.red(),
         )
-        embed.set_footer(text="Use the menu below to explore commands.")
+        embed.set_footer(text="Select a category below to view commands.")
         await ctx.send(embed=embed, view=HelpView())
 
 
