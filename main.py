@@ -32,7 +32,7 @@ db = mycord.PunksDB()
 # BOT
 # =========================================
 
-intents = commands.Intents.all()
+intents = discord.Intents.all()
 
 bot = commands.Bot(
     command_prefix="Lilith ",
