@@ -1,28 +1,43 @@
 import os
 import asyncio
 
-import discord
-from discord.ext import commands
 from dotenv import load_dotenv
+from discord.ext import commands
+
+import mycord
 
 
 # =========================================
-# SETUP
+# LOAD ENVIRONMENT
 # =========================================
 
 load_dotenv()
 
+TOKEN = os.getenv("DISCORD_TOKEN")
 
-intents = discord.Intents.default()
+if not TOKEN:
+    raise RuntimeError(
+        "DISCORD_TOKEN is missing from .env"
+    )
 
-intents.message_content = True
-intents.members = True
 
+# =========================================
+# DATABASE
+# =========================================
+
+db = mycord.PunksDB()
+
+
+# =========================================
+# BOT
+# =========================================
+
+intents = commands.Intents.all()
 
 bot = commands.Bot(
     command_prefix="Lilith ",
-    help_command=None,
-    intents=intents
+    intents=intents,
+    help_command=None
 )
 
 
@@ -30,80 +45,85 @@ bot = commands.Bot(
 # LOAD COGS
 # =========================================
 
-async def load_extensions():
+async def load_cogs():
 
-    print("📂 Lilith: Scanning for cogs...")
+    cogs_folder = "cogs"
 
-    folder = "./lilith/cogs"
-
-    if not os.path.exists(folder):
-
-        print("⚠️ Lilith: No 'cogs' folder found.")
-
+    if not os.path.exists(cogs_folder):
+        print("⚠️ cogs folder not found.")
         return
 
-    for filename in os.listdir(folder):
+    for filename in os.listdir(cogs_folder):
 
-        if (
-            filename.endswith(".py")
-            and not filename.startswith("__")
-        ):
+        if not filename.endswith(".py"):
+            continue
 
-            try:
+        if filename.startswith("_"):
+            continue
 
-                await bot.load_extension(
-                    f"lilith.cogs.{filename[:-3]}"
-                )
+        extension = (
+            f"{cogs_folder}.{filename[:-3]}"
+        )
 
-                print(
-                    f"  └─ Loaded cog: {filename}"
-                )
+        try:
 
-            except Exception as e:
+            await bot.load_extension(
+                extension
+            )
 
-                print(
-                    f"  ❌ Failed to load "
-                    f"{filename}: {e}"
-                )
+            print(
+                f"✅ Loaded cog: {filename}"
+            )
+
+        except Exception as e:
+
+            print(
+                f"❌ Failed to load "
+                f"{filename}: {e}"
+            )
 
 
 # =========================================
-# READY
+# BOT READY
 # =========================================
 
 @bot.event
 async def on_ready():
 
     print(
-        f"🤖 Success! Logged in as "
-        f"{bot.user.name}"
+        f"🖤 Lilith is online as "
+        f"{bot.user} ({bot.user.id})"
     )
 
     print(
-        "⚡ Lilith is online and listening."
+        f"🏠 Connected to "
+        f"{len(bot.guilds)} server(s)"
     )
 
 
 # =========================================
-# MAIN
+# STARTUP
 # =========================================
 
 async def main():
 
-    await load_extensions()
+    await load_cogs()
 
-    token = os.getenv("LILITH_TOKEN")
+    await bot.start(TOKEN)
 
-    if not token:
+
+# =========================================
+# RUN
+# =========================================
+
+if __name__ == "__main__":
+
+    try:
+
+        asyncio.run(main())
+
+    except KeyboardInterrupt:
 
         print(
-            "❌ CRITICAL ERROR: "
-            "'LILITH_TOKEN' is missing!"
-        )
-
-        return
-
-    await bot.start(token)
-
-
-asyncio.run(main())
+            "🛑 Lilith stopped."
+)
