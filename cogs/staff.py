@@ -2,6 +2,7 @@ import discord
 from discord.ext import commands
 
 import mycord
+from utils.command import command
 
 
 # =========================================
@@ -33,6 +34,7 @@ LEVELS = {
 }
 
 LEVEL_NAMES = {
+    0: "Not Staff",
     1: "🟢 Trial Moderator",
     2: "🔵 Moderator",
     3: "🔴 Senior Moderator",
@@ -51,12 +53,12 @@ class Staff(commands.Cog):
         self.bot = bot
 
     # =====================================
-    # GET USER LEVEL
+    # GET STAFF LEVEL
     # =====================================
 
     def get_level(self, guild, user):
 
-        # Server owner
+        # Server Owner is always level 5
         if user.id == guild.owner_id:
             return 5
 
@@ -72,51 +74,50 @@ class Staff(commands.Cog):
         return data["level"]
 
     # =====================================
-    # GET LEVEL NAME
+    # LEVEL NAME
     # =====================================
 
     def get_level_name(self, level):
 
         return LEVEL_NAMES.get(
             level,
-            "No Staff Rank"
+            "Unknown"
         )
 
     # =====================================
-    # CHECK STAFF
+    # LEVEL PARSER
     # =====================================
 
-    def is_staff(self, guild, user):
+    def parse_level(self, level):
 
-        return self.get_level(
-            guild,
-            user
-        ) > 0
+        level = level.lower()
+
+        aliases = {
+            "trial": 1,
+            "trainee": 1,
+
+            "moderator": 2,
+            "mod": 2,
+
+            "senior": 3,
+            "seniormod": 3,
+
+            "head": 4,
+            "headmod": 4,
+        }
+
+        return aliases.get(level)
 
     # =====================================
     # MOD ADD
     # =====================================
 
-    @commands.group(
-        name="mod",
-        invoke_without_command=True
+    @command(
+        "🖤 Staff",
+        "Add a user to Lilith staff",
+        name="modadd"
     )
-    async def mod(self, ctx):
-
-        await ctx.send(
-            "🖤 Use `mod add`, `mod remove`, "
-            "`mod list`, `mod info`, "
-            "`mod promote`, or `mod demote`."
-        )
-
-    # =====================================
-    # MOD ADD
-    # =====================================
-
-    @mod.command(
-        name="add"
-    )
-    async def mod_add(
+    async def modadd(
         self,
         ctx,
         member: discord.Member,
@@ -128,7 +129,7 @@ class Staff(commands.Cog):
             ctx.author
         )
 
-        # Only Head Moderator or Owner
+        # Head Moderator or above
         if actor_level < 4:
 
             await ctx.send(
@@ -137,12 +138,21 @@ class Staff(commands.Cog):
             )
             return
 
-        level = level.lower()
-
-        if level not in LEVELS:
+        # Owner is automatically staff
+        if member.id == ctx.guild.owner_id:
 
             await ctx.send(
-                "❌ Invalid level.\n\n"
+                "❌ The Server Owner is "
+                "automatically recognized."
+            )
+            return
+
+        new_level = self.parse_level(level)
+
+        if new_level is None:
+
+            await ctx.send(
+                "❌ Invalid staff level.\n\n"
                 "Available levels:\n"
                 "`trial`\n"
                 "`moderator`\n"
@@ -151,29 +161,16 @@ class Staff(commands.Cog):
             )
             return
 
-        new_level = LEVELS[level]
-
         target_level = self.get_level(
             ctx.guild,
             member
         )
 
-        # Don't modify someone equal/higher
         if target_level >= actor_level:
 
             await ctx.send(
-                "❌ You cannot modify a "
-                "staff member at or above "
-                "your level."
-            )
-            return
-
-        # Owner cannot be manually added
-        if member.id == ctx.guild.owner_id:
-
-            await ctx.send(
-                "❌ The Server Owner is "
-                "automatically recognized."
+                "❌ You cannot modify someone "
+                "at or above your own level."
             )
             return
 
@@ -193,10 +190,12 @@ class Staff(commands.Cog):
     # MOD REMOVE
     # =====================================
 
-    @mod.command(
-        name="remove"
+    @command(
+        "🖤 Staff",
+        "Remove a user from Lilith staff",
+        name="modremove"
     )
-    async def mod_remove(
+    async def modremove(
         self,
         ctx,
         member: discord.Member
@@ -215,19 +214,6 @@ class Staff(commands.Cog):
             )
             return
 
-        target_level = self.get_level(
-            ctx.guild,
-            member
-        )
-
-        if target_level == 0:
-
-            await ctx.send(
-                "❌ That user is not a "
-                "Lilith staff member."
-            )
-            return
-
         if member.id == ctx.guild.owner_id:
 
             await ctx.send(
@@ -236,12 +222,23 @@ class Staff(commands.Cog):
             )
             return
 
+        target_level = self.get_level(
+            ctx.guild,
+            member
+        )
+
+        if target_level == 0:
+
+            await ctx.send(
+                "❌ That user is not Lilith staff."
+            )
+            return
+
         if target_level >= actor_level:
 
             await ctx.send(
-                "❌ You cannot remove a "
-                "staff member at or above "
-                "your level."
+                "❌ You cannot remove someone "
+                "at or above your own level."
             )
             return
 
@@ -260,13 +257,12 @@ class Staff(commands.Cog):
     # MOD LIST
     # =====================================
 
-    @mod.command(
-        name="list"
+    @command(
+        "🖤 Staff",
+        "Show all Lilith staff members",
+        name="modlist"
     )
-    async def mod_list(
-        self,
-        ctx
-    ):
+    async def modlist(self, ctx):
 
         rows = db.fetchall(
             "lilith_staff",
@@ -279,7 +275,6 @@ class Staff(commands.Cog):
             color=discord.Color.dark_red()
         )
 
-        # Owner
         owner = ctx.guild.owner
 
         embed.add_field(
@@ -345,10 +340,12 @@ class Staff(commands.Cog):
     # MOD INFO
     # =====================================
 
-    @mod.command(
-        name="info"
+    @command(
+        "🖤 Staff",
+        "Show a user's Lilith staff information",
+        name="modinfo"
     )
-    async def mod_info(
+    async def modinfo(
         self,
         ctx,
         member: discord.Member
@@ -360,7 +357,7 @@ class Staff(commands.Cog):
         )
 
         embed = discord.Embed(
-            title="🖤 Moderator Information",
+            title="🖤 Staff Information",
             color=discord.Color.dark_red()
         )
 
@@ -380,18 +377,18 @@ class Staff(commands.Cog):
             inline=False
         )
 
-        await ctx.send(
-            embed=embed
-        )
+        await ctx.send(embed=embed)
 
     # =====================================
     # MOD PROMOTE
     # =====================================
 
-    @mod.command(
-        name="promote"
+    @command(
+        "🖤 Staff",
+        "Promote a Lilith staff member",
+        name="modpromote"
     )
-    async def mod_promote(
+    async def modpromote(
         self,
         ctx,
         member: discord.Member
@@ -402,6 +399,7 @@ class Staff(commands.Cog):
             ctx.author
         )
 
+        # Senior Moderator or above
         if actor_level < 3:
 
             await ctx.send(
@@ -418,8 +416,7 @@ class Staff(commands.Cog):
         if target_level == 0:
 
             await ctx.send(
-                "❌ That user is not a "
-                "Lilith staff member."
+                "❌ That user is not Lilith staff."
             )
             return
 
@@ -434,7 +431,7 @@ class Staff(commands.Cog):
         if target_level >= 4:
 
             await ctx.send(
-                "❌ That user is already "
+                "❌ They are already a "
                 "**Head Moderator**."
             )
             return
@@ -458,10 +455,12 @@ class Staff(commands.Cog):
     # MOD DEMOTE
     # =====================================
 
-    @mod.command(
-        name="demote"
+    @command(
+        "🖤 Staff",
+        "Demote a Lilith staff member",
+        name="moddemote"
     )
-    async def mod_demote(
+    async def moddemote(
         self,
         ctx,
         member: discord.Member
@@ -472,6 +471,7 @@ class Staff(commands.Cog):
             ctx.author
         )
 
+        # Senior Moderator or above
         if actor_level < 3:
 
             await ctx.send(
@@ -488,17 +488,15 @@ class Staff(commands.Cog):
         if target_level == 0:
 
             await ctx.send(
-                "❌ That user is not a "
-                "Lilith staff member."
+                "❌ That user is not Lilith staff."
             )
             return
 
         if target_level >= actor_level:
 
             await ctx.send(
-                "❌ You cannot demote a "
-                "staff member at or above "
-                "your level."
+                "❌ You cannot demote someone "
+                "at or above your own level."
             )
             return
 
@@ -534,4 +532,4 @@ async def setup(bot):
 
     await bot.add_cog(
         Staff(bot)
-    )
+        )
